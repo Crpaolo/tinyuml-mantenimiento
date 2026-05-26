@@ -49,6 +49,10 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import org.tinyuml.draw.Label;
 import org.tinyuml.draw.DiagramElement;
 import org.tinyuml.draw.LabelChangeListener;
+import org.tinyuml.umldraw.structure.ClassElement;
+import org.tinyuml.umldraw.structure.ComponentElement;
+import org.tinyuml.umldraw.structure.PackageElement;
+import org.tinyuml.umldraw.shared.NoteElement;
 import org.tinyuml.model.UmlModel;
 import org.tinyuml.util.AppCommandListener;
 import org.tinyuml.umldraw.structure.StructureDiagram;
@@ -79,6 +83,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
 
   private JTabbedPane tabbedPane;
   private JLabel coordLabel = new JLabel("    ");
+  private JLabel elemCountLabel = new JLabel("    ");
   private JLabel memLabel = new JLabel("    ");
   private UmlModel umlModel;
   private DiagramEditor currentEditor;
@@ -241,8 +246,27 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private void installStatusbar() {
     JPanel statusbar = new JPanel(new BorderLayout());
     statusbar.add(coordLabel, BorderLayout.WEST);
+    statusbar.add(elemCountLabel, BorderLayout.CENTER);
     statusbar.add(memLabel, BorderLayout.EAST);
     getContentPane().add(statusbar, BorderLayout.SOUTH);
+  }
+
+  /**
+   * Counts diagram elements by category and updates the status bar label.
+   * Counts only top-level children of the active diagram.
+   */
+  private void updateElementCountLabel(DiagramEditor editor) {
+    int classes = 0, packages = 0, components = 0, notes = 0;
+    for (DiagramElement elem : editor.getDiagram().getChildren()) {
+      if (elem instanceof ClassElement) classes++;
+      else if (elem instanceof PackageElement) packages++;
+      else if (elem instanceof ComponentElement) components++;
+      else if (elem instanceof NoteElement) notes++;
+    }
+    int total = classes + packages + components + notes;
+    elemCountLabel.setText(String.format(
+      "Total Items: %02d; Class:%02d; Package:%02d; Component:%02d; Note:%02d",
+      total, classes, packages, components, notes));
   }
 
   /**
@@ -284,6 +308,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
     // spring loading is implemented here
     staticToolbarManager.doClick("SELECT_MODE");
     updateMenuAndToolbars(editor);
+    updateElementCountLabel(editor);
   }
 
   /**
@@ -291,6 +316,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    */
   public void elementRemoved(DiagramEditor editor) {
     updateMenuAndToolbars(editor);
+    updateElementCountLabel(editor);
   }
 
   /**
@@ -424,6 +450,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
       diagram.setLabelText("Class diagram 1");
       tabbedPane.removeAll();
       createEditor(diagram);
+      updateElementCountLabel(currentEditor);
     }
   }
 
@@ -531,6 +558,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
           tabbedPane.removeAll();
           createEditor((StructureDiagram) umlModel.getDiagrams().get(0));
           updateFrameTitle();
+          updateElementCountLabel(currentEditor);
         } catch (IOException ex) {
           JOptionPane.showMessageDialog(this, ex.getMessage(),
             getResourceString("error.readfile.title"),
@@ -629,7 +657,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
 	  if(hasSelection)
 	    lastCopiedElements = getCurrentEditor().getSelectedElements();
 
-	  //adicionalmente, hay que habilitar el botón PASTE!
+	  //adicionalmente, hay que habilitar el botï¿½n PASTE!
 	  menumanager.enableMenuItem("PASTE", hasSelection);
 	  toolbarmanager.enableButton("PASTE", hasSelection);
   }
